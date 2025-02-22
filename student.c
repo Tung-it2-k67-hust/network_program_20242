@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include "student.h"
 
 void calculate_mean(STUDENT *s) {
@@ -13,7 +14,18 @@ char* get_grade(double mean) {
     else return "D";
 }
 
-void print_students(const STUDENT *data, int size) {
+int compare_students(const void *a, const void *b) {
+    STUDENT *studentA = (STUDENT *)a;
+    STUDENT *studentB = (STUDENT *)b;
+    if (studentA->mean < studentB->mean) return 1;
+    if (studentA->mean > studentB->mean) return -1;
+    return 0;
+}
+
+void print_students(STUDENT *data, int size) {
+    // Sort the students in descending order based on their mean scores
+    qsort(data, size, sizeof(STUDENT), compare_students);
+
     printf("%-10s %-5s %-5s %-5s %-10s %-5s\n", "Name", "Eng", "Math", "Phys", "Mean", "Grade");
     for (int i = 0; i < size; i++) {
         printf("%-10s %-5d %-5d %-5d %-10.2f %-5s\n", 
