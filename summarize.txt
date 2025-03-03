@@ -1,0 +1,310 @@
+Chương 1:
+-Phân tầng:
+Đối với các hệ thống phức tạp: nguyên lý ”chia để trị”
+• Cho phép xác định rõ nhiệm vụ của mỗi bộ phận và quan hệ
+giữa chúng
+• Cho phép dễ dàng bảo trì và nâng cấp hệ thống
+-PDU: đ vị dữ liệu giao thức
+-IP: routing-forwarding
+-Processes communicating: user nên biết về server nhưng server k cần biết về client
+
+
+Chương 2:
+-typedef: đ/n kiểu dữ liệu mới
+-prototype
+-Process compiling:
+Preprocess: loại bỏ comment, dịch các '#'
+C compiler: sang assembly
+assembler: tạo mã object(.o)
+Link editor: link tới các thư viện, (.exe)
+-define: #define MAXN 50
+const: const int MAXN = 50
+-Xâu kí tự có kí tự kết thúc xâu, mảng kí tự
+không có kí tự kết
+VD: Để lưu trữ xâu “Tin hoc” chúng ta phải khai báo xâu
+có số phần tử tối đa ít nhất là 8
+char str [8];
+
+
+Chương 3:
+MSS = MTU = header.size
+-netinet:
+struct in_addr { 
+    in_addr_t s_addr; /* 32-bit IPv4 address (network byte ordered) */
+};
+struct sockaddr_in {
+    uint16_t sin_len;      /* length of structure (16) */
+    sa_family_t sin_family; /* AF_INET */
+    in_port_t sin_port;    /* 16-bit TCP or UDP port number (network byte ordered) */
+    struct in_addr sin_addr; /* 32-bit IPv4 address (network byte ordered) */
+    char sin_zero[8];      /* unused */
+};//endpoint address include ipv4:port
+
+-sys socket: AF_INET: for udp/TCP
+
+-a socket address structure is passed to
+any socket function, it is always passed by
+reference
+
+-3 functions: bind, connect & sendto: process -> kernel
+int server_fd;
+struct sockaddr_in address;
+int addrlen = sizeof(address);
+
+server_fd = socket(AF_INET, SOCK_STREAM, 0);
+address.sin_family = AF_INET;
+address.sin_addr.s_addr = INADDR_ANY;
+address.sin_port = htons(PORT);
+
++) bind(server_fd, (struct sockaddr *)&address, sizeof(address));
+
+
++) inet_pton(AF_INET, "127.0.0.1", &serv_addr.sin_addr);
+connect(sock, (struct sockaddr *)&serv_addr, sizeof(serv_addr));
+
++)inet_pton(AF_INET, "127.0.0.1", &servaddr.sin_addr);
+
+char *message = "Hello, Server!";
+sendto(sockfd, message, strlen(message), 0, (struct sockaddr *)&servaddr, sizeof(servaddr));
+
+
+-4 functions: accept, recvfrom, getsockname,
+and getpeername: kernel -> process
+
+server:
+#include <stdio.h>
+#include <string.h>
+#include <arpa/inet.h>
+#include <unistd.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+
+#define PORT 8080
+#define BUFFER_SIZE 1024
+
+int main() {
+    int server_fd, new_socket;
+    struct sockaddr_in address;
+    int addrlen = sizeof(address);
+    char buffer[BUFFER_SIZE] = {0};
+
+    // Tạo socket
+    server_fd = socket(AF_INET, SOCK_STREAM, 0);
+    if (server_fd == 0) {
+        perror("socket failed");
+        return -1;
+    }
+
+    // Gán địa chỉ cho socket
+    address.sin_family = AF_INET;
+    address.sin_addr.s_addr = INADDR_ANY;
+    address.sin_port = htons(PORT);
+
+    if (bind(server_fd, (struct sockaddr *)&address, sizeof(address)) < 0) {
+        perror("bind failed");
+        return -1;
+    }
+
+    // Lắng nghe kết nối
+    if (listen(server_fd, 3) < 0) {
+        perror("listen");
+        return -1;
+    }
+
+    // Chấp nhận kết nối từ client
+    new_socket = accept(server_fd, (struct sockaddr *)&address, (socklen_t*)&addrlen);
+    if (new_socket < 0) {
+        perror("accept");
+        return -1;
+    }
+
+    // Nhận dữ liệu từ client
+    recv(new_socket, buffer, BUFFER_SIZE, 0);
+    printf("Message from client: %s\n", buffer);
+
+    // Lấy địa chỉ của socket hiện tại
+    getsockname(new_socket, (struct sockaddr *)&address, (socklen_t*)&addrlen);
+    printf("Server IP address: %s\n", inet_ntoa(address.sin_addr));
+    printf("Server port: %d\n", ntohs(address.sin_port));
+
+    // Lấy địa chỉ của client
+    getpeername(new_socket, (struct sockaddr *)&address, (socklen_t*)&addrlen);
+    printf("Client IP address: %s\n", inet_ntoa(address.sin_addr));
+    printf("Client port: %d\n", ntohs(address.sin_port));
+
+    // Gửi phản hồi tới client
+    char *response = "Hello, Client!";
+    send(new_socket, response, strlen(response), 0);
+
+    // Đóng socket
+    close(new_socket);
+    close(server_fd);
+
+    return 0;
+}
+
+
+-Address Conversion Functions:
+#include <stdio.h>
+#include <arpa/inet.h>
+
+int main() {
+    // Sử dụng inet_aton để chuyển đổi địa chỉ IPv4 từ chuỗi sang nhị phân
+    struct in_addr addr_aton;
+    if (inet_aton("192.168.1.1", &addr_aton)) {
+        printf("inet_aton: Địa chỉ nhị phân: 0x%x\n", addr_aton.s_addr);
+    } else {
+        printf("inet_aton: Địa chỉ không hợp lệ\n");
+    }
+
+    // Sử dụng inet_ntoa để chuyển đổi địa chỉ IPv4 từ nhị phân sang chuỗi
+    char *addr_ntoa = inet_ntoa(addr_aton);
+    printf("inet_ntoa: Địa chỉ chuỗi: %s\n", addr_ntoa);
+
+    // Sử dụng inet_pton để chuyển đổi địa chỉ IPv4 từ chuỗi sang nhị phân
+    struct in_addr addr_pton;
+    if (inet_pton(AF_INET, "192.168.1.1", &addr_pton) == 1) {
+        printf("inet_pton: Địa chỉ nhị phân: 0x%x\n", addr_pton.s_addr);
+    } else {
+        printf("inet_pton: Địa chỉ không hợp lệ\n");
+    }
+
+    // Sử dụng inet_ntop để chuyển đổi địa chỉ IPv4 từ nhị phân sang chuỗi
+    char addr_ntop[INET_ADDRSTRLEN];
+    if (inet_ntop(AF_INET, &addr_pton, addr_ntop, INET_ADDRSTRLEN) != NULL) {
+        printf("inet_ntop: Địa chỉ chuỗi: %s\n", addr_ntop);
+    } else {
+        printf("inet_ntop: Chuyển đổi thất bại\n");
+    }
+
+    return 0;
+}
+-sock_ntop tốt hơn inet_ntop(k có protocol inf+port number+ người dùng cần biết trước l
+loại địa chỉ)
+
+
+-read(): đọc từ buffer socket
+server:
+#include <stdio.h>
+#include <string.h>
+#include <arpa/inet.h>
+#include <unistd.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+
+#define PORT 8080
+#define BUFFER_SIZE 1024
+
+int main() {
+    int server_fd, new_socket;
+    struct sockaddr_in address;
+    int addrlen = sizeof(address);
+    char buffer[BUFFER_SIZE] = {0};
+
+    // Tạo socket
+    server_fd = socket(AF_INET, SOCK_STREAM, 0);
+    if (server_fd == 0) {
+        perror("socket failed");
+        return -1;
+    }
+
+    // Gán địa chỉ cho socket
+    address.sin_family = AF_INET;
+    address.sin_addr.s_addr = INADDR_ANY;
+    address.sin_port = htons(PORT);
+
+    if (bind(server_fd, (struct sockaddr *)&address, sizeof(address)) < 0) {
+        perror("bind failed");
+        return -1;
+    }
+
+    // Lắng nghe kết nối
+    if (listen(server_fd, 3) < 0) {
+        perror("listen");
+        return -1;
+    }
+
+    // Chấp nhận kết nối từ client
+    new_socket = accept(server_fd, (struct sockaddr *)&address, (socklen_t*)&addrlen);
+    if (new_socket < 0) {
+        perror("accept");
+        return -1;
+    }
+
+    // Sử dụng hàm read() để đọc dữ liệu từ client
+    ssize_t bytes_read = read(new_socket, buffer, BUFFER_SIZE);
+    if (bytes_read < 0) {
+        perror("read");
+        return -1;
+    }
+    printf("Message from client: %s\n", buffer);
+
+    // Gửi phản hồi tới client
+    char *response = "Hello, Client!";
+    send(new_socket, response, strlen(response), 0);
+
+    // Đóng socket
+    close(new_socket);
+    close(server_fd);
+
+    return 0;
+}
+
+
+
+client:
+#include <stdio.h>
+#include <string.h>
+#include <arpa/inet.h>
+#include <unistd.h>
+#include <sys/socket.h>
+
+#define PORT 8080
+#define BUFFER_SIZE 1024
+
+int main() {
+    int sock = 0;
+    struct sockaddr_in serv_addr;
+    char *message = "Hello, Server!";
+    char buffer[BUFFER_SIZE] = {0};
+
+    // Tạo socket
+    if ((sock = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
+        printf("\n Socket creation error \n");
+        return -1;
+    }
+
+    serv_addr.sin_family = AF_INET;
+    serv_addr.sin_port = htons(PORT);
+
+    // Chuyển đổi địa chỉ IP từ dạng text sang dạng nhị phân
+    if (inet_pton(AF_INET, "127.0.0.1", &serv_addr.sin_addr) <= 0) {
+        printf("\nInvalid address/ Address not supported \n");
+        return -1;
+    }
+
+    // Kết nối tới server
+    if (connect(sock, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0) {
+        printf("\nConnection Failed \n");
+        return -1;
+    }
+
+    // Gửi thông điệp tới server
+    send(sock, message, strlen(message), 0);
+    printf("Message sent to server\n");
+
+    // Nhận phản hồi từ server
+    read(sock, buffer, BUFFER_SIZE);
+    printf("Message from server: %s\n", buffer);
+
+    // Đóng socket
+    close(sock);
+
+    return 0;
+}
+
+error then return -1
+close connection return 0(end of file)
+
+
+
