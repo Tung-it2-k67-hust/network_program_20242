@@ -308,3 +308,142 @@ close connection return 0(end of file)
 
 
 
+Chương 4:
+các thư viện:
+sys/socket.h
+
+Mô tả: Thư viện này chứa các hàm và cấu trúc cần thiết để tạo và quản lý các socket.
+Mục đích: Sử dụng để tạo socket, thiết lập kết nối, gửi và nhận dữ liệu qua mạng.
+
+arpa/inet.h
+Mô tả: Thư viện này chứa các hàm liên quan đến các hoạt động Internet, chẳng hạn như chuyển đổi địa chỉ IP giữa dạng văn bản và nhị phân.
+Mục đích: Sử dụng để chuyển đổi địa chỉ IP, ví dụ như inet_pton, inet_ntop, inet_aton, và inet_ntoa.
+
+netinet/in.h
+Mô tả: Thư viện này chứa các cấu trúc và hằng số được sử dụng trong các địa chỉ miền Internet (như sockaddr_in).
+Mục đích: Sử dụng để định nghĩa các cấu trúc địa chỉ mạng và các hằng số liên quan.
+
+unistd.h
+Mô tả: Thư viện này chứa các hàm hệ thống POSIX, bao gồm cả hàm close để đóng socket.
+Mục đích: Sử dụng để đóng socket và thực hiện các thao tác hệ thống khác.
+
+
+-Hàm connect:
+ETIMEDOUT:
+Nếu client TCP không nhận được phản hồi cho gói SYN mà nó đã gửi, sau 75 giây, lỗi ETIMEDOUT sẽ được trả về. Điều này có thể xảy ra nếu server không hoạt động hoặc có vấn đề mạng ngăn cản gói SYN đến server.
+ECONNREFUSED:
+Nếu server nhận được gói SYN từ client nhưng trả về gói RST (reset)
+(aka không chấp nhận kết nối đó)
+EHOSTUNREACH hoặc ENETUNREACH:
+Nếu không nhận được phản hồi trong thời gian(75s) này, client có thể trả về EHOSTUNREACH (máy chủ không thể tiếp cận) hoặc ENETUNREACH (mạng không thể tiếp cận), cho biết có vấn đề trong việc kết nối đến server do sự cố mạng.
+
+
+-Hàm listen:
+int listen(int sockfd, int backlog);
++ backlog: chỉ định số lượng kết nối tối đa mà kernel 
+sẽ xếp hàng cho socket này.
++ chức năng:
+Chuyển Đổi Tình Trạng Socket:
+socket mới tạo(chủ động)->socket được kết nối(bị động)
+Thay Đổi Trạng Thái:
+Hàm này di chuyển socket từ trạng thái CLOSED (đóng) sang trạng thái LISTEN (lắng nghe). Trong trạng thái LISTEN, socket sẽ sẵn sàng để nhận các yêu cầu kết nối.
+
+
+
+-Hàm accept:
+Trả về: Một descriptor không âm nếu thành công (đại diện cho kết nối mới), -1 nếu có lỗi.
+sockfd: Là mô tả socket mà server đã gọi listen để lắng nghe kết nối.
+cliaddr: Là con trỏ đến một cấu trúc địa chỉ socket mà sẽ chứa địa chỉ của client kết nối.
+addrlen: Là một tham số kiểu giá trị-kết quả. Nó chứa kích thước của cấu trúc địa chỉ khi gọi hàm và sẽ được cập nhật với kích thước thực tế của địa chỉ client sau khi kết nối thành công.
+
+Chức Năng Của Hàm accept
+Nhận Kết Nối:
+Khi server gọi hàm accept, nó sẽ kiểm tra hàng đợi các kết nối hoàn tất. Nếu có kết nối sẵn sàng, hàm sẽ trả về một descriptor cho kết nối mới này.
+Xử Lý Hàng Đợi:
+Nếu hàng đợi kết nối hoàn tất trống, quá trình gọi accept sẽ bị đưa vào trạng thái chờ (sleep) cho đến khi có kết nối mới đến. Điều này giúp tiết kiệm tài nguyên CPU, vì server không cần phải liên tục kiểm tra xem có kết nối nào mới không.
+Thông Tin Về Client:
+Tham số cliaddr sẽ chứa địa chỉ của client kết nối (bao gồm địa chỉ IP và số cổng), và addrlen sẽ được cập nhật để phản ánh kích thước thực tế của địa chỉ client.
+
+
+
+
+-Hàm fork:
+#include <unistd.h>
+pid_t fork(void);
+Trả về:
+0 trong quá trình con.
+ID của quá trình con trong quá trình cha (parent).
+-1 nếu có lỗi xảy ra.
+Chức Năng Của Hàm fork
+Tạo Quá Trình Mới:
+Hàm fork được gọi một lần, nhưng nó sẽ trả về hai lần: một lần trong quá trình cha và một lần trong quá trình con.
+Điều này có nghĩa là sau khi gọi fork, sẽ có hai quá trình đang chạy: quá trình cha và quá trình con.
+Giá Trị Trả Về:
+Trong quá trình cha, fork trả về ID của quá trình con mới được tạo. Điều này cho phép quá trình cha biết được nó đã tạo ra bao nhiêu quá trình con.
+Trong quá trình con, fork trả về 0. Điều này cho phép quá trình con biết rằng nó là một quá trình con và không cần thông tin về ID của quá trình cha, vì nó có thể lấy thông tin đó bằng cách gọi hàm getppid().
+Tính Độc Lập:
+Quá trình con sẽ có một bản sao của không gian bộ nhớ của quá trình cha tại thời điểm gọi fork. Tuy nhiên, sau khi fork, cả hai quá trình có thể thực hiện độc lập và thay đổi trạng thái của mình mà không ảnh hưởng đến nhau.
+
+
+
+
+
+
+-Hàm close:
+#include <unistd.h>
+int close(int sockfd);
+Trả về:
+0 nếu thành công.
+-1 nếu có lỗi xảy ra.
+Chức Năng Của Hàm close
+Đóng Socket:
+Hàm close được sử dụng để đóng một socket mà không còn cần thiết nữa, giải phóng tài nguyên mà socket đang sử dụng.
+Kết Thúc Kết Nối TCP:
+Khi gọi close trên một socket đã kết nối, nó sẽ thực hiện quy trình kết thúc kết nối TCP, bao gồm gửi gói tin FIN để thông báo cho đối tác rằng kết nối sẽ được đóng.
+Quản Lý Tham Chiếu:
+Mỗi socket có một bộ đếm tham chiếu, cho biết có bao nhiêu quá trình đang sử dụng nó. Khi một quá trình gọi close, bộ đếm này sẽ giảm đi.
+Nếu một quá trình cha không đóng socket mà nó đã tạo ra cho quá trình con, khi quá trình con đóng socket đó, bộ đếm tham chiếu sẽ giảm từ 2 xuống 1. Vì quá trình cha không đóng socket, bộ đếm sẽ vẫn giữ giá trị 1, ngăn cản quá trình kết thúc kết nối TCP diễn ra.
+Điều này có thể dẫn đến tình trạng kết nối vẫn mở, mặc dù một trong các quá trình đã cố gắng đóng nó.
+
+
+
+Chương 5: xử lý đa đầu vào
+Vấn đề:
+khi client bị block fgets->không kiểm tra được trạng thái socket
+server tắt->gửi FIN->đánh dấu bên client socket là unconnect
+=> bị block fgets->không xử lý được FIN
+client cần thông báo cho kernel rằng nó muốn nhận thông báo khi có một hoặc nhiều điều kiện I/O sẵn sàng. Điều này có thể được thực hiện bằng cách sử dụng I/O multiplexing.
+
+File Descriptor là những "thẻ" mà hệ thống sử dụng để theo dõi các tài nguyên I/O
+
+select và poll đều được sử dụng cho I/O multiplexing, cho phép theo dõi nhiều file descriptors để biết liệu chúng có sẵn cho hoạt động I/O hay không
+
+poll k giới hạn số fd -hơi phức tạp khi quản lý mảng pollfd
+
+select:
+#include <sys/select.h>
+int select(int nfds, fd_set *readfds, fd_set *writefds, fd_set *exceptfds, struct timeval *timeout);
+
+poll:
+#include <poll.h>
+int poll(struct pollfd *fds, nfds_t nfds, int timeout);
+
+
+
+pselect() và select() đều được sử dụng trong các hệ thống POSIX để theo dõi nhiều file descriptors, nhưng chúng có một số khác biệt quan trọng. Dưới đây là giải thích chi tiết về các điểm khác biệt chính mà bạn đã đề cập:
+
+1. Signal Masking
+select():
+Không có cơ chế để thay đổi tín hiệu (signal mask) một cách nguyên tử (atomically) trong khi chờ đợi các file descriptors trở nên sẵn sàng. Điều này có thể dẫn đến tình huống gọi là "race condition", nơi một tín hiệu có thể đến trong khoảng thời gian giữa thiết lập trình xử lý tín hiệu và khi select() bắt đầu chạy. Điều này có thể khiến chương trình không xử lý tín hiệu đúng cách.
+pselect():
+Cho phép bạn thiết lập một signal mask một cách nguyên tử trước khi chờ đợi. Khi bạn sử dụng pselect(), bạn có thể chỉ định những tín hiệu nào sẽ bị chặn trong khi chờ đợi, và sau khi pselect() hoàn thành, signal mask sẽ tự động được khôi phục về trạng thái trước đó. Điều này giúp ngăn ngừa các race conditions.
+2. Time Resolution
+select():
+Sử dụng cấu trúc struct timeval để chỉ định thời gian chờ (timeout). Cấu trúc này có độ phân giải tính bằng microsecond (1/1,000,000 giây), điều này có thể không đủ chính xác cho một số ứng dụng yêu cầu độ chính xác cao hơn.
+pselect():
+Sử dụng cấu trúc struct timespec, cho phép độ phân giải cao hơn (nanosecond, tức là 1/1,000,000,000 giây). Điều này làm cho pselect() có thể xử lý các tình huống mà độ chính xác của thời gian là yếu tố quan trọng.
+Tóm Tắt
+Signal Masking: pselect() cho phép bạn kiểm soát tín hiệu một cách an toàn hơn trong khi chờ đợi file descriptors, trong khi select() không có tính năng này.
+Time Resolution: pselect() cung cấp độ phân giải thời gian tốt hơn so với select(), giúp cho các ứng dụng cần độ chính xác cao hơn có thể hoạt động hiệu quả hơn.
+
+
