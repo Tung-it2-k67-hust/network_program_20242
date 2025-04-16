@@ -6,7 +6,8 @@
 
 #define PORT 8080
 #define BUFFER_SIZE 16
-
+#define PLAYER_X 1
+#define PLAYER_O 2
 int game_board[3][3];
 int move_count = 0;
 
