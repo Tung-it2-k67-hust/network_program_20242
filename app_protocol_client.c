@@ -28,7 +28,6 @@ int main() {
     unsigned char buffer[BUFFER_SIZE];
     int running = 1;
 
-    // Tạo kết nối
     sock = socket(AF_INET, SOCK_STREAM, 0);
     serv_addr.sin_family = AF_INET;
     serv_addr.sin_port = htons(PORT);
@@ -40,12 +39,14 @@ int main() {
         int len = recv(sock, buffer, BUFFER_SIZE, 0);
         if (len <= 0) break;
         unsigned char type = buffer[0];
+        printf("Received message type: 0x%02x\n", type);  // Debug
 
         if (type == 0x05) {
-            // Đến lượt
-            int row, col;
+            int player = buffer[1];
+            printf("It's your turn! You are player %c\n", player == 1 ? 'X' : 'O');
             print_board(board);
             printf("Your move (row col): ");
+            int row, col;
             scanf("%d %d", &row, &col);
             buffer[0] = 0x02;
             buffer[1] = (unsigned char)row;
@@ -53,14 +54,12 @@ int main() {
             send(sock, buffer, 3, 0);
 
         } else if (type == 0x03) {
-            // Cập nhật trạng thái
             for (int i = 0, idx = 1; i < 3; i++)
                 for (int j = 0; j < 3; j++)
                     board[i][j] = buffer[idx++];
             print_board(board);
 
         } else if (type == 0x04) {
-            // Kết quả
             int res = buffer[1];
             if (res == 3) printf("Game ended in a draw!\n");
             else if ((res == 1 && board[0][0] == 1) || (res == 2 && board[0][0] == 2))
