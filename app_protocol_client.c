@@ -53,7 +53,11 @@ int main() {
             buffer[2] = (unsigned char)col;
             send(sock, buffer, 3, 0);
 
-        } else if (type == 0x03) {
+        }else if (type == 0x06) {  // WAIT_NOTIFICATION
+    printf("Waiting for the other player...\n");
+
+} 
+else if (type == 0x03) {
             for (int i = 0, idx = 1; i < 3; i++)
                 for (int j = 0; j < 3; j++)
                     board[i][j] = buffer[idx++];
