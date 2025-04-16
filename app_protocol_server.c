@@ -57,43 +57,50 @@ int main() {
     printf("Player O connected.\n");
 
     while (1) {
-        int turn_sock = (current_player == PLAYER_X ? client1 : client2);
+    int turn_sock = (current_player == PLAYER_X ? client1 : client2);
+    int wait_sock = (current_player == PLAYER_X ? client2 : client1);
 
-        // Gửi TURN_NOTIFICATION có kèm người chơi
-        buffer[0] = 0x05;
-        buffer[1] = current_player;
-        send(turn_sock, buffer, 2, 0);
+    // Notify the current player it's their turn
+    buffer[0] = 0x05;  // TURN_NOTIFICATION
+    buffer[1] = current_player;
+    send(turn_sock, buffer, 2, 0);
 
-        // Nhận MOVE
-        recv(turn_sock, buffer, BUFFER_SIZE, 0);
-        int row = buffer[1], col = buffer[2];
-        if (row < 0 || row > 2 || col < 0 || col > 2 || game_board[row][col] != 0) {
-            continue;
-        }
+    // Notify the other player to wait
+    buffer[0] = 0x06;  // WAIT_NOTIFICATION (new type)
+    send(wait_sock, buffer, 1, 0);
 
-        game_board[row][col] = current_player;
-        move_count++;
-        print_board(game_board);
-
-        // Gửi STATE_UPDATE
-        buffer[0] = 0x03;
-        for (int i = 0, idx = 1; i < 3; i++)
-            for (int j = 0; j < 3; j++)
-                buffer[idx++] = game_board[i][j];
-        send(client1, buffer, 10, 0);
-        send(client2, buffer, 10, 0);
-
-        int result = check_winner(game_board);
-        if (result) {
-            buffer[0] = 0x04;
-            buffer[1] = (unsigned char)result;
-            send(client1, buffer, 2, 0);
-            send(client2, buffer, 2, 0);
-            break;
-        }
-
-        current_player = (current_player == PLAYER_X ? PLAYER_O : PLAYER_X);
+    // Receive move
+    recv(turn_sock, buffer, BUFFER_SIZE, 0);
+    int row = buffer[1], col = buffer[2];
+    if (row < 0 || row > 2 || col < 0 || col > 2 || game_board[row][col] != 0) {
+        continue;  // Invalid move, retry
     }
+
+    game_board[row][col] = current_player;
+    move_count++;
+    print_board(game_board);
+
+    // Broadcast the updated board
+    buffer[0] = 0x03;  // STATE_UPDATE
+    for (int i = 0, idx = 1; i < 3; i++)
+        for (int j = 0; j < 3; j++)
+            buffer[idx++] = game_board[i][j];
+    send(client1, buffer, 10, 0);
+    send(client2, buffer, 10, 0);
+
+    // Check for a winner
+    int result = check_winner(game_board);
+    if (result) {
+        buffer[0] = 0x04;  // GAME_END
+        buffer[1] = (unsigned char)result;
+        send(client1, buffer, 2, 0);
+        send(client2, buffer, 2, 0);
+        break;
+    }
+
+    // Switch turn
+    current_player = (current_player == PLAYER_X ? PLAYER_O : PLAYER_X);
+}
 
     close(client1);
     close(client2);
