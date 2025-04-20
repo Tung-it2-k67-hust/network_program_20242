@@ -12,6 +12,7 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <sys/stat.h>
+#include <sys/wait.h>  // Added to support waitpid
 
 #define PORT 8080
 #define BUF_SIZE 4096
